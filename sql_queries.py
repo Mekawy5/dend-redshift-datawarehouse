@@ -154,20 +154,77 @@ staging_songs_copy = ("""
 )
 
 # FINAL TABLES
-
 songplay_table_insert = ("""
+    INSERT INTO songplays (
+        start_time,
+        user_id,
+        level,
+        song_id,
+        artist_id,
+        session_id,
+        location,
+        user_agent
+    )
+    SELECT DISTINCT e.ts,
+        e.userId,
+        e.level,
+        s.song_id,
+        s.artist_id,
+        e.sessionId,
+        e.location,
+        e.userAgent
+    FROM staging_events e 
+    JOIN staging_songs s
+    ON e.song = s.title
+    AND e.artist = s.artist_name
+    WHERE page = 'NextSong'
+    AND e.song IS NOT NULL
+    AND e.artist IS NOT NULL;
 """)
 
 user_table_insert = ("""
+    INSERT INTO users (
+        user_id, first_name, last_name, gender, level
+    )
+    SELECT DISTINCT userId,
+        firstName,
+        lastName,
+        gender,
+        level
+    FROM staging_events
+    WHERE page = 'NextSong'
+    AND userId IS NOT NULL;
 """)
 
 song_table_insert = ("""
+    INSERT INTO songs(song_id, title, artist_id, year, duration)
+    SELECT DISTINCT song_id, title, artist_id, year, duration
+    FROM staging_songs;
 """)
 
 artist_table_insert = ("""
+    INSERT INTO artists(artist_id, name, location, latitude, longitude)
+    SELECT DISTINCT artist_id,
+                    artist_name,
+                    artist_location,
+                    artist_latitude,
+                    artist_longitude
+    FROM staging_songs;
 """)
 
+# https://docs.aws.amazon.com/redshift/latest/dg/r_EXTRACT_function.html
 time_table_insert = ("""
+    INSERT INTO time(start_time, hour, day, week, month, year, weekday)
+    SELECT DISTINCT
+        ts,
+        EXTRACT(hour FROM ts),
+        EXTRACT(day FROM ts),
+        EXTRACT(week FROM ts),
+        EXTRACT(month FROM ts),
+        EXTRACT(year FROM ts),
+        EXTRACT(dow FROM ts)
+    FROM staging_events
+    WHERE page = 'NextSong';
 """)
 
 # QUERY LISTS
