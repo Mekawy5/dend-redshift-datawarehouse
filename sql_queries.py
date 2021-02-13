@@ -58,7 +58,7 @@ staging_songs_table_create = ("""
     );
 """)
 
-# fact table, distributed by song_id 
+# fact table, distributed by song_id, sort by user_id
 # http://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html#identity-clause
 songplay_table_create = ("""
     CREATE TABLE IF NOT EXISTS songplays
