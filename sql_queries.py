@@ -9,11 +9,11 @@ config.read('dwh.cfg')
 
 staging_events_table_drop = "drop table if exists staging_events;"
 staging_songs_table_drop = "drop table if exists staging_songs;"
-songplay_table_drop = "drop table if exists songplay_table;"
-user_table_drop = "drop table if exists user_table;"
-song_table_drop = "drop table if exists song_table;"
-artist_table_drop = "drop table if exists artist_table;"
-time_table_drop = "drop table if exists time_table;"
+songplay_table_drop = "drop table if exists songplays;"
+user_table_drop = "drop table if exists users;"
+song_table_drop = "drop table if exists songs;"
+artist_table_drop = "drop table if exists artists;"
+time_table_drop = "drop table if exists time;"
 
 # CREATE TABLES QUERIES
 
@@ -71,11 +71,7 @@ songplay_table_create = ("""
         artist_id       VARCHAR     NOT NULL,
         session_id      INT,
         location        VARCHAR,
-        user_agent      VARCHAR,
-        FOREIGN KEY(start_time) REFERENCES time(start_time),
-        FOREIGN KEY(user_id)    REFERENCES users(user_id),
-        FOREIGN KEY(song_id)    REFERENCES songs(song_id),
-        FOREIGN KEY(artist_id)  REFERENCES artists(artist_id)
+        user_agent      VARCHAR
     );
 """)
 
@@ -95,10 +91,9 @@ song_table_create = ("""
     (
         song_id     VARCHAR     NOT NULL    PRIMARY KEY     DISTKEY,
         title       VARCHAR     NOT NULL,
-        artist_id   INT         NOT NULL    SORTKEY,
+        artist_id   VARCHAR     NOT NULL    SORTKEY,
         year        INT,
-        duration    FLOAT,
-        FOREIGN KEY(artist_id)  REFERENCES artists(artist_id)
+        duration    FLOAT
     );
 """)
 
@@ -129,13 +124,14 @@ time_table_create = ("""
 # STAGING TABLES
 # see format option docs
 # https://docs.aws.amazon.com/redshift/latest/dg/copy-parameters-data-format.html#copy-format
-
+# https://docs.amazonaws.cn/en_us/redshift/latest/dg/copy-parameters-data-conversion.html#copy-timeformat
 staging_events_copy = ("""
     copy staging_events
     from {}
     iam_role {}
     region 'us-west-2'
-    format as json {};
+    format as json {}
+    TIMEFORMAT 'epochmillisecs';
 """).format(
     config.get('S3','LOG_DATA'),
     config.get('IAM_ROLE','ARN'),
@@ -147,7 +143,8 @@ staging_songs_copy = ("""
     from {}
     iam_role {}
     region 'us-west-2'
-    format as json 'auto';
+    format as json 'auto'
+    TRUNCATECOLUMNS;
 """).format(
     config.get('S3','SONG_DATA'),
     config.get('IAM_ROLE','ARN')
